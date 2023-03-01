@@ -1,3 +1,10 @@
+/**
+ * Questions:
+ * - Is the difference between sessions and cookies? How did they relate?
+ * - What is the function of next()?
+ *
+ */
+
 var createError = require("http-errors");
 var express = require("express");
 var path = require("path");
@@ -7,9 +14,20 @@ var app = express();
 const session = require("express-session");
 const FileStore = require("session-file-store")(session);
 
-//data sent to the clients browser
+var indexRouter = require("./routes/index");
+var usersRouter = require("./routes/users");
+const campsiteRouter = require("./routes/campsiteRouter");
+const promotionRouter = require("./routes/promotionRouter");
+const partnerRouter = require("./routes/partnerRouter");
 
-// app.use(cookieParser("12345-67890-09876-54321"));
+const mongoose = require("mongoose");
+const url = "mongodb://127.0.0.1:27017/nucampsite";
+const connect = mongoose.connect(url, {
+  useCreateIndex: true,
+  useFindAndModify: false,
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+});
 
 app.use(
   session({
@@ -20,66 +38,6 @@ app.use(
     store: new FileStore(),
   })
 );
-
-//AUTHENTICATE function and middleware declaration
-
-// can they use this technology to identify the people using their products, and sell it to others, ex people interested in people who go on espn. Can google tell you who your users are with cookies? Can chrome use your cookies, not just the site. 
-function auth(req, res, next) {
-  console.log(req.session);
-
-  if (!req.session.user) {
-    const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      const err = new Error("You are not authenticated!");
-      res.setHeader("WWW-Authenticate", "Basic");
-      err.status = 401;
-      return next(err);
-    }
-
-    const auth = Buffer.from(authHeader.split(" ")[1], "base64")
-      .toString()
-      .split(":");
-    const user = auth[0];
-    const pass = auth[1];
-    if (user === "admin" && pass === "password") {
-      req.session.user = "admin";
-      return next(); // authorized
-    } else {
-      const err = new Error("You are not authenticated!");
-      res.setHeader("WWW-Authenticate", "Basic");
-      err.status = 401;
-      return next(err);
-    }
-  } else {
-    if (req.session.user === "admin") {
-      return next();
-    } else {
-      const err = new Error("You are not authenticated!");
-      err.status = 401;
-      return next(err);
-    }
-  }
-}
-
-app.use(auth);
-
-var indexRouter = require("./routes/index");
-var usersRouter = require("./routes/users");
-const campsiteRouter = require("./routes/campsiteRouter");
-const promotionRouter = require("./routes/promotionRouter");
-const partnerRouter = require("./routes/partnerRouter");
-
-const mongoose = require("mongoose");
-
-// Wow the url was wrong
-
-const url = "mongodb://127.0.0.1:27017/nucampsite";
-const connect = mongoose.connect(url, {
-  useCreateIndex: true,
-  useFindAndModify: false,
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
 
 connect.then(
   () => console.log("Connected correctly to server"),
@@ -99,6 +57,27 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/", indexRouter);
 app.use("/users", usersRouter);
+
+function auth(req, res, next) {
+  console.log(req.session);
+
+  if (!req.session.user) {
+    const err = new Error("You are not authenticated!");
+    err.status = 401;
+    return next(err);
+  } else {
+    if (req.session.user === "authenticated") {
+      return next();
+    } else {
+      const err = new Error("You are not authenticated!");
+      err.status = 401;
+      return next(err);
+    }
+  }
+}
+
+app.use(auth);
+
 app.use("/campsites", campsiteRouter);
 app.use("/promotions", promotionRouter);
 app.use("/partners", partnerRouter);

@@ -1,5 +1,6 @@
 const express = require("express");
 const User = require("../models/user");
+const passport = require('passport');
 
 const router = express.Router();
 
@@ -9,13 +10,19 @@ router.get("/", function (req, res, next) {
 });
 
 router.post("/signup", (req, res, next) => {
+
+  // Are there any matches in our database? If so, throw an error
+  console.log(req.body)
+  // debugger;
   User.findOne({ username: req.body.username })
     .then((user) => {
       if (user) {
         const err = new Error(`User ${req.body.username} already exists!`);
         err.status = 403;
+        //return next() : By using return next it will jump out the callback immediately and the code below return next() will be unreachable.
         return next(err);
       } else {
+        //add user with create which returns promise
         User.create({
           username: req.body.username,
           password: req.body.password,
@@ -31,6 +38,8 @@ router.post("/signup", (req, res, next) => {
     .catch((err) => next(err));
 });
 
+
+// Do you always have to make specifications for all of the different types of API requests or can you do a default for API pets call to a specific route that all default to 405 or whatever the call is for when you don't have permission to do that
 router.post("/login", (req, res, next) => {
   if (!req.session.user) {
     const authHeader = req.headers.authorization;
@@ -74,6 +83,7 @@ router.post("/login", (req, res, next) => {
 });
 
 router.get("/logout", (req, res, next) => {
+  // destroy the session so session file on server side cannot authenticate
   if (req.session) {
     req.session.destroy();
     res.clearCookie("session-id");
