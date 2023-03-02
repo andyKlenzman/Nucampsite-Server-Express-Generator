@@ -19,7 +19,8 @@ var usersRouter = require("./routes/users");
 const campsiteRouter = require("./routes/campsiteRouter");
 const promotionRouter = require("./routes/promotionRouter");
 const partnerRouter = require("./routes/partnerRouter");
-
+const passport = require('passport');
+const authenticate = require('./authenticate');
 const mongoose = require("mongoose");
 const url = "mongodb://127.0.0.1:27017/nucampsite";
 const connect = mongoose.connect(url, {
@@ -38,6 +39,9 @@ app.use(
     store: new FileStore(),
   })
 );
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 connect.then(
   () => console.log("Connected correctly to server"),
@@ -59,20 +63,14 @@ app.use("/", indexRouter);
 app.use("/users", usersRouter);
 
 function auth(req, res, next) {
-  console.log(req.session);
+  console.log(req.user);
 
-  if (!req.session.user) {
-    const err = new Error("You are not authenticated!");
-    err.status = 401;
-    return next(err);
-  } else {
-    if (req.session.user === "authenticated") {
-      return next();
-    } else {
-      const err = new Error("You are not authenticated!");
+  if (!req.user) {
+      const err = new Error('You are not authenticated!');                    
       err.status = 401;
       return next(err);
-    }
+  } else {
+      return next();
   }
 }
 
