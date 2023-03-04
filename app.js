@@ -17,10 +17,10 @@ var usersRouter = require("./routes/users");
 const campsiteRouter = require("./routes/campsiteRouter");
 const promotionRouter = require("./routes/promotionRouter");
 const partnerRouter = require("./routes/partnerRouter");
-const passport = require('passport');
-const authenticate = require('./authenticate');
+const passport = require("passport");
+const authenticate = require("./authenticate");
 const mongoose = require("mongoose");
-const config = require('./config');
+const config = require("./config");
 const url = config.mongoUrl;
 
 // const url = "mongodb://127.0.0.1:27017/nucampsite";
@@ -30,9 +30,6 @@ const connect = mongoose.connect(url, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });
-
-
-
 
 app.use(passport.initialize());
 

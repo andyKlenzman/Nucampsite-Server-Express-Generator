@@ -1,7 +1,6 @@
 const express = require("express");
 const Campsite = require("../models/campsite");
 const authenticate = require("../authenticate");
-
 const campsiteRouter = express.Router();
 
 campsiteRouter
@@ -18,7 +17,7 @@ campsiteRouter
   })
 
   // What did you want to put a lot of this error? Checking in the front end? This could rack up fees from making useless calls to the server. Have this as a back up but also keep air checking on the front end.
-  .post(authenticate.verifyUser, (req, res, next) => {
+  .post(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
     Campsite.create(req.body)
       .then((campsite) => {
         console.log("Campsite Created ", campsite);
@@ -28,11 +27,11 @@ campsiteRouter
       })
       .catch((err) => next(err));
   })
-  .put(authenticate.verifyUser, (req, res) => {
+  .put(authenticate.verifyUser, authenticate.verifyAdmin, (req, res) => {
     res.statusCode = 403;
     res.end("PUT operation not supported on /campsites");
   })
-  .delete(authenticate.verifyUser, (req, res, next) => {
+  .delete(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
     Campsite.deleteMany()
       .then((response) => {
         res.statusCode = 200;
@@ -60,7 +59,7 @@ campsiteRouter
       `POST operation not supported on /campsites/${req.params.campsiteId}`
     );
   })
-  .put(authenticate.verifyUser, (req, res, next) => {
+  .put(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
     Campsite.findByIdAndUpdate(
       req.params.campsiteId,
       {
@@ -75,7 +74,7 @@ campsiteRouter
       })
       .catch((err) => next(err));
   })
-  .delete(authenticate.verifyUser, (req, res, next) => {
+  .delete(authenticate.verifyUser, authenticate.verifyAdmin, (req, res, next) => {
     Campsite.findByIdAndDelete(req.params.campsiteId)
       .then((response) => {
         res.statusCode = 200;
@@ -104,6 +103,7 @@ campsiteRouter
       })
       .catch((err) => next(err));
   })
+  // need a confition if the campsite id is wrong
   .post(authenticate.verifyUser, (req, res, next) => {
     Campsite.findById(req.params.campsiteId)
       .then((campsite) => {
@@ -132,7 +132,7 @@ campsiteRouter
       `PUT operation not supported on /campsites/${req.params.campsiteId}/comments`
     );
   })
-  .delete(authenticate.verifyUser, (req, res, next) => {
+  .delete(authenticate.verifyUser, authenticate.verifyAdmin,(req, res, next) => {
     Campsite.findById(req.params.campsiteId)
       .then((campsite) => {
         if (campsite) {
@@ -184,7 +184,7 @@ campsiteRouter
       `POST operation not supported on /campsites/${req.params.campsiteId}/comments/${req.params.commentId}`
     );
   })
-  .put(authenticate.verifyUser, (req, res, next) => {
+  .put(authenticate.verifyUser, authenticate.verifyOwner, (req, res, next) => {
     Campsite.findById(req.params.campsiteId)
       .then((campsite) => {
         if (campsite && campsite.comments.id(req.params.commentId)) {
@@ -214,7 +214,7 @@ campsiteRouter
       })
       .catch((err) => next(err));
   })
-  .delete(authenticate.verifyUser, (req, res, next) => {
+  .delete(authenticate.verifyUser, authenticate.verifyOwner, (req, res, next) => {
     Campsite.findById(req.params.campsiteId)
       .then((campsite) => {
         if (campsite && campsite.comments.id(req.params.commentId)) {
