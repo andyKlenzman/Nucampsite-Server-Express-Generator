@@ -2,11 +2,14 @@ const express = require("express");
 const User = require("../models/user");
 const passport = require("passport");
 const authenticate = require("../authenticate");
+const cors = require('./cors');
 
 const router = express.Router();
 
+
+// adding this middleware to every route is insane...can we have another way to abstract it s oqew can group middleware
 /* GET users listing. */
-router.get("/", authenticate.verifyUser, authenticate.verifyAdmin, function (req, res, next) {
+router.get("/", cors.cors, authenticate.verifyUser, authenticate.verifyAdmin, function (req, res, next) {
   User.find()
       .then((users) => {
         res.statusCode = 200;
@@ -61,7 +64,7 @@ router.post("/login", passport.authenticate("local"), (req, res) => {
   });
 });
 
-router.get("/logout", (req, res, next) => {
+router.get("/logout", cors.cors, (req, res, next) => {
   // destroy the session so session file on server side cannot authenticate
   if (req.session) {
     req.session.destroy();
