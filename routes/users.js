@@ -2,22 +2,27 @@ const express = require("express");
 const User = require("../models/user");
 const passport = require("passport");
 const authenticate = require("../authenticate");
-const cors = require('./cors');
+const cors = require("./cors");
 
 const router = express.Router();
 
-
 // adding this middleware to every route is insane...can we have another way to abstract it s oqew can group middleware
 /* GET users listing. */
-router.get("/", cors.cors, authenticate.verifyUser, authenticate.verifyAdmin, function (req, res, next) {
-  User.find()
+router.get(
+  "/",
+  cors.cors,
+  authenticate.verifyUser,
+  authenticate.verifyAdmin,
+  function (req, res, next) {
+    User.find()
       .then((users) => {
         res.statusCode = 200;
         res.setHeader("Content-Type", "application/json");
         res.json(users);
       })
       .catch((err) => next(err));
-});
+  }
+);
 
 router.post("/signup", (req, res) => {
   User.register(
@@ -54,6 +59,7 @@ router.post("/signup", (req, res) => {
 });
 
 router.post("/login", passport.authenticate("local"), (req, res) => {
+  console.log({ _id: req.user._id })
   const token = authenticate.getToken({ _id: req.user._id });
   res.statusCode = 200;
   res.setHeader("Content-Type", "application/json");
@@ -76,5 +82,22 @@ router.get("/logout", cors.cors, (req, res, next) => {
     return next(err);
   }
 });
+
+router.get(
+  "/facebook/token",
+  passport.authenticate("facebook-token"),
+  (req, res) => {
+    if (req.user) {
+      const token = authenticate.getToken({ _id: req.user._id });
+      res.statusCode = 200;
+      res.setHeader("Content-Type", "application/json");
+      res.json({
+        success: true,
+        token: token,
+        status: "You are successfully logged in!",
+      });
+    }
+  }
+);
 
 module.exports = router;

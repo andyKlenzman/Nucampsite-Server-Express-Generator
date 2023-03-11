@@ -5,10 +5,11 @@ const campsiteRouter = express.Router();
 const cors = require('./cors');
 
 
-campsiteRouter
+campsiteRouter 
   .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
   .route("/")
   .get(cors.cors,(req, res, next) => {
+    console.log(req.user)
     Campsite.find()
       .populate("comments.author")
       .then((campsites) => {

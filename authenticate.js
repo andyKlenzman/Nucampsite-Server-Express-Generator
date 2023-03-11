@@ -6,6 +6,7 @@ const JwtStrategy = require("passport-jwt").Strategy;
 const ExtractJwt = require("passport-jwt").ExtractJwt;
 const jwt = require("jsonwebtoken"); // used to create, sign, and verify tokens
 const createError = require("http-errors");
+const FacebookTokenStrategy = require("passport-facebook-token");
 
 const config = require("./config.js");
 
@@ -48,8 +49,7 @@ exports.verifyAdmin = function (req, res, next) {
   }
 };
 
-
-    // Comparing the value of the comments author and the current user. If true, allow the current user to edit or delete the comment, else error
+// Comparing the value of the comments author and the current user. If true, allow the current user to edit or delete the comment, else error
 exports.verifyOwner = function (req, res, next) {
   console.log("Verify Owner");
   Campsite.findById(req.params.campsiteId).then((campsite) => {
@@ -57,7 +57,7 @@ exports.verifyOwner = function (req, res, next) {
       campsite.comments.id(req.params.commentId).author.toString() ==
       req.user._id.toString()
     ) {
-      console.log("Verified Comment Owner")
+      console.log("Verified Comment Owner");
       return next();
     } else {
       next(
@@ -66,3 +66,34 @@ exports.verifyOwner = function (req, res, next) {
     }
   });
 };
+
+exports.facebookPassport = passport.use(
+  new FacebookTokenStrategy(
+    {
+      clientID: config.facebook.clientId,
+      clientSecret: config.facebook.clientSecret,
+    },
+    (accessToken, refreshToken, profile, done) => {
+      User.findOne({ facebookId: profile.id }, (err, user) => {
+        if (err) {
+          return done(err, false);
+        }
+        if (!err && user) {
+          return done(null, user);
+        } else {
+          user = new User({ username: profile.displayName });
+          user.facebookId = profile.id;
+          user.firstname = profile.name.givenName;
+          user.lastname = profile.name.familyName;
+          user.save((err, user) => {
+            if (err) {
+              return done(err, false);
+            } else {
+              return done(null, user);
+            }
+          });
+        }
+      });
+    }
+  )
+);
