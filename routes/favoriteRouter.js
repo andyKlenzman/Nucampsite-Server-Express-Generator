@@ -12,12 +12,12 @@ const cors = require("./cors");
  *  -
  */
 favoriteRouter
-  .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
   .route("/")
-  .get(cors.cors, (req, res, next) => {
-    console.log(req.user);
+  .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
+  .get(cors.cors, authenticate.verifyUser, (req, res, next) => {
     Favorite.find({ user: req.user._id })
       .populate("user")
+      .populate("campsites")
       .then((favorites) => {
         res.statusCode = 200;
         res.setHeader("Content-Type", "application/json");
@@ -27,14 +27,18 @@ favoriteRouter
   })
   .post(cors.corsWithOptions, authenticate.verifyUser, (req, res, next) => {
     Favorite.findOne({ user: req.user._id })
-      //check if favorites document exists. If it does, add items that are unique, else, create a new doc and add them all
-      //does leet codfe have a debugger
       .then((favorite) => {
-        const newFavorites = req.body;
+        console.log("hey", favorite.campsites);
+
         if (favorite) {
-          newFavorites.forEach((item) => {
-            if (!newFavorites.include(item)) {
-              favorite.push(item);
+          const newFav = req.body;
+          newFav.forEach((item) => {
+            if (!favorite.campsites.includes(item._id)) {
+              favorite.campsites.push(item._id);
+            } else {
+              res.statusCode = 200;
+              res.setHeader("Content-Type", "text/plain");
+              res.end("That campsite is already in the list of favorites!");
             }
           });
           favorite.save().then((favorite) => {
@@ -43,12 +47,14 @@ favoriteRouter
             res.json(favorite);
           });
         } else {
-          Favorite.create(req.body).then((favorite) => {
-            console.log("Favorite Created ", favorite);
-            res.statusCode = 200;
-            res.setHeader("Content-Type", "application/json");
-            res.json(favorite);
-          });
+          Favorite.create({ user: req.user._id, campsites: req.body }).then(
+            (favorite) => {
+              console.log("Favorite Created ", favorite);
+              res.statusCode = 200;
+              res.setHeader("Content-Type", "application/json");
+              res.json(favorite);
+            }
+          );
         }
       })
       .catch((err) => next(err));
@@ -65,10 +71,16 @@ favoriteRouter
       //not sure if this query will work or not
       Favorite.findOneAndDelete({ user: req.user._id })
         .then((response) => {
-          res.statusCode = 200;
-          res.setHeader("Content-Type", "application/json");
-          res.json(response);
+          if (response) {
+            res.statusCode = 200;
+            res.setHeader("Content-Type", "application/json");
+            res.json(response);
+          } else {
+            res.setHeader("Content-Type", "text/plain");
+            res.end("No favorites for deletion");
+          }
         })
+
         .catch((err) => next(err));
     }
   );
@@ -87,17 +99,30 @@ favoriteRouter
     Favorite.findOne({ user: req.user._id })
       .populate("User")
       .then((favorites) => {
-        console.log("here", favorites);
-        if (favorites && favorites.includes(req.params.campsiteId)) {
-          res.end(`Already favorited`);
+        if (favorites) {
+          console.log("here", req.user);
+          if (favorites.includes(req.params.campsiteId)) {
+            res.end(`Already favorited`);
+          } else {
+            response.campsites.push(req.params.campsiteId);
+            response.save().then((favorite) => {
+              res.statusCode = 200;
+              res.setHeader("Content-Type", "application/json");
+              res.json(favorite);
+            });
+          }
         } else {
-          response.push(req.params.campsiteId);
+          Favorite.create({
+            user: req.user._id,
+            campsites: req.params.campsiteId,
+          })
+            .then((favorite) => {
+              res.statusCode = 200;
+              res.setHeader("Content-Type", "application/json");
+              res.json(favorite);
+            })
+            .catch((err) => next(err));
         }
-        response.save().then((favorite) => {
-          res.statusCode = 200;
-          res.setHeader("Content-Type", "application/json");
-          res.json(favorite);
-        });
       });
 
     //check if the camspite exists, and add it if it doesn't, else return the message in instructions
@@ -113,20 +138,18 @@ favoriteRouter
     authenticate.verifyUser,
 
     (req, res, next) => {
-      Favorite.findOne(req.params.favoriteId)
+      Favorite.findOne({ user: req.user._id })
         .then((favorite) => {
-          favorite.indexOf(req.params.campsiteId).then((index) => {
-            favoriteRouter.splice(index, 1);
+          console.log(favorite);
+          const index = favorite.campsites.indexOf(req.params.campsiteId);
+          favorite.campsites.splice(index, 1);
+          favorite.save().then((favorite) => {
+            res.statusCode = 200;
+            res.setHeader("Content-Type", "application/json");
+            res.json(favorite);
           });
         })
-        .then((favorite) => {
-          favorite.save();
-        })
-        .then((favorite) => {
-          res.statusCode = 200;
-          res.setHeader("Content-Type", "application/json");
-          res.json(favorite);
-        })
+
         .catch((err) => next(err));
     }
   );

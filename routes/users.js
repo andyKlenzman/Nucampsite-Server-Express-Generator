@@ -10,7 +10,7 @@ const router = express.Router();
 /* GET users listing. */
 router.get(
   "/",
-  cors.cors,
+  cors.corsWithOptions,
   authenticate.verifyUser,
   authenticate.verifyAdmin,
   function (req, res, next) {
@@ -70,7 +70,7 @@ router.post("/login", passport.authenticate("local"), (req, res) => {
   });
 });
 
-router.get("/logout", cors.cors, (req, res, next) => {
+router.get("/logout", (req, res, next) => {
   // destroy the session so session file on server side cannot authenticate
   if (req.session) {
     req.session.destroy();
